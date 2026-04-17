@@ -17,9 +17,9 @@
 <body>
 <div class="container">
     <nav>
-        <a href="?action=list">Игроки</a> |
-        <a href="?action=bracket">Сетка</a> |
-        <a href="?action=draw">Провести жеребьевку</a>
+        <a href="index.php?action=list">Игроки</a> |
+        <a href="index.php?action=bracket">Сетка</a> |
+        <a href="index.php?action=draw">Провести жеребьевку</a>
     </nav>
 
     <?php include($view_content); ?>

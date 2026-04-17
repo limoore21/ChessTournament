@@ -1,31 +1,29 @@
 <h2>Турнирная сетка</h2>
 
 <?php if (empty($rounds)): ?>
-    <p>Жеребьевка еще не проведена. <a href="?action=draw">Провести сейчас</a></p>
+    <div style="padding: 20px; border: 1px dashed #ccc; background: #f9f9f9;">
+        <p>Данные в базе не найдены или жеребьевка еще не проводилась.</p>
+        <a href="index.php?action=draw" style="font-weight: bold; color: blue; text-decoration: underline;">
+            Нажмите сюда, чтобы запустить жеребьевку
+        </a>
+    </div>
 <?php else: ?>
-    <div class="bracket">
-        <?php foreach ($rounds as $roundNum => $matches): ?>
-            <div class="round">
-                <h3>Раунд <?= $roundNum ?></h3>
+    <div style="display: flex; gap: 30px; align-items: flex-start;">
+        <?php foreach ($rounds as $round_id => $matches): ?>
+            <div class="round-column">
+                <h4 style="background: #eee; padding: 5px; text-align: center;">Раунд <?= $round_id ?></h4>
                 <?php foreach ($matches as $match): ?>
-                    <div class="match">
-                        <div class="player <?= ($match['winner_id'] == $match['p1_id'] && $match['winner_id'] != null) ? 'winner' : '' ?>">
-                            <?= $match['p1_name'] ?? '???' ?>
+                    <div style="border: 1px solid #000; margin-bottom: 10px; padding: 10px; width: 180px; background: #fff;">
+                        <div style="border-bottom: 1px solid #ccc; padding-bottom: 5px;">
+                            <strong>1:</strong> <?= htmlspecialchars($match['p1_name'] ?? '---') ?>
                         </div>
-                        <div style="text-align: center; font-size: 10px; color: #888;">VS</div>
-                        <div class="player <?= ($match['winner_id'] == $match['p2_id'] && $match['winner_id'] != null) ? 'winner' : '' ?>">
-                            <?= $match['p2_name'] ?? '???' ?>
+                        <div style="padding-top: 5px;">
+                            <strong>2:</strong> <?= htmlspecialchars($match['p2_name'] ?? '---') ?>
                         </div>
-
-                        <?php if (!$match['winner_id'] && $match['p1_id'] && $match['p2_id']): ?>
-                            <form method="POST" action="?action=set_winner" style="margin-top: 5px;">
-                                <input type="hidden" name="match_id" value="<?= $match['id'] ?>">
-                                <select name="winner_id" onchange="this.form.submit()">
-                                    <option value="">Кто победил?</option>
-                                    <option value="<?= $match['p1_id'] ?>"><?= $match['p1_name'] ?></option>
-                                    <option value="<?= $match['p2_id'] ?>"><?= $match['p2_name'] ?></option>
-                                </select>
-                            </form>
+                        <?php if ($match['winner_id']): ?>
+                            <div style="margin-top: 5px; color: green; font-size: 0.8em;">
+                                Победитель: <?= htmlspecialchars($match['winner_name'] ?? 'ID ' . $match['winner_id']) ?>
+                            </div>
                         <?php endif; ?>
                     </div>
                 <?php endforeach; ?>
@@ -33,5 +31,8 @@
         <?php endforeach; ?>
     </div>
 
-    <p><a href="?action=reset" style="color: red;" onclick="return confirm('Это удалит текущую сетку!')">Сбросить турнир</a></p>
+    <div style="margin-top: 40px;">
+        <a href="index.php?action=draw" onclick="return confirm('Это полностью сбросит текущую сетку. Продолжить?')"
+           style="color: red; font-size: 0.9em;">Сбросить и пересоздать сетку</a>
+    </div>
 <?php endif; ?>
