@@ -1,7 +1,6 @@
 <?php
 
 function addBD() {
-    // включаем режим ошибок PDO, чтобы видеть, если SQL сломается
     $options = [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
