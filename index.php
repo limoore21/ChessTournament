@@ -45,7 +45,7 @@ switch ($action) {
         break;
 
     case 'bracket':
-        $sql = "SELECT matches.*, players1.nickname AS p1_name, players2.nickname AS p2_name, rounds.round_name
+        $sql = "SELECT matches.*, players1.nickname AS p1_name, players2.nickname AS p2_name, rounds.round_name, rounds.round_number
             FROM matches
             JOIN rounds ON matches.round_id = rounds.id
             LEFT JOIN players AS players1 ON matches.player1_id = players1.id
@@ -57,13 +57,21 @@ switch ($action) {
         $all_matches = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         $rounds = [];
-        $final_winner = null;
-
         foreach ($all_matches as $match) {
             $rounds[$match['round_id']][] = $match;
+        }
 
-            if ($match['round_name'] === 'Финал' && !empty($match['winner_id'])) {
-                $final_winner = ($match['winner_id'] == $match['player1_id']) ? $match['p1_name'] : $match['p2_name'];
+        // ЛОГИКА ПОЗДРАВЛЕНИЯ
+        $final_winner = null;
+        if (!empty($rounds)) {
+            $last_round_matches = end($rounds);
+            if (count($last_round_matches) === 1) {
+                $last_match = $last_round_matches[0];
+                if (!empty($last_match['winner_id'])) {
+                    $final_winner = ($last_match['winner_id'] == $last_match['player1_id'])
+                        ? $last_match['p1_name']
+                        : $last_match['p2_name'];
+                }
             }
         }
 
@@ -75,21 +83,27 @@ switch ($action) {
         $tournament_id = 1;
 
         try {
-            $pdo->prepare("INSERT IGNORE INTO tournaments (id, title) VALUES (1, 'Первый чемпионат')")->execute();
+            $pdo->exec("SET FOREIGN_KEY_CHECKS = 0;");
+            $pdo->exec("TRUNCATE TABLE matches;");
+            $pdo->exec("TRUNCATE TABLE rounds;");
+            $pdo->exec("TRUNCATE TABLE tournament_participants;");
+//            $pdo->exec("TRUNCATE TABLE players;");
 
-            $pdo->prepare("INSERT IGNORE INTO tournament_participants (tournament_id, player_id) 
+            $pdo->exec("SET FOREIGN_KEY_CHECKS = 1;");
+
+            $pdo->prepare("INSERT IGNORE INTO tournaments (id, title) VALUES (1, 'Main Event')")->execute();
+
+            $pdo->prepare("INSERT INTO tournament_participants (tournament_id, player_id) 
                        SELECT 1, id FROM players")->execute();
-
-            $pdo->prepare("DELETE FROM rounds WHERE tournament_id = ?")->execute([$tournament_id]);
 
             if (drawTournament($pdo, $tournament_id)) {
                 header("Location: index.php?action=bracket");
                 exit;
             } else {
-                die("Ошибка: Мало игроков для жеребьевки.");
+                die("Ошибка: Для жеребьевки нужно хотя бы 2 игрока в таблице players.");
             }
         } catch (PDOException $e) {
-            die("Ошибка базы данных: " . $e->getMessage());
+            die("Ошибка БД: " . $e->getMessage());
         }
         break;
 

@@ -12,7 +12,7 @@ function drawTournament($pdo, $tournament_id) {
     // 2. Рандом, Перемешиваем массив
     shuffle($participants);
 
-    // 3. Создаем первый раунд (Раунд №1)
+    // 3. Создаем первый раунд
     $sql_round = "INSERT INTO rounds (tournament_id, round_number, round_name) VALUES (:t_id, 1, '1/4 Финала')";
     $pdo->prepare($sql_round)->execute(['t_id' => $tournament_id]);
     $round_id = $pdo->lastInsertId();
