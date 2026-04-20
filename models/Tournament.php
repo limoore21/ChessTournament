@@ -1,38 +1,39 @@
 <?php
+function drawTournament($pdo, $tournamentId) {
+    $stmt = $pdo->query("SELECT id FROM players");
+    $players = $stmt->fetchAll(PDO::FETCH_COLUMN);
 
-function drawTournament($pdo, $tournament_id) {
-    // 1. Получаем всех участников турнира
-    $sql = "SELECT player_id FROM tournament_participants WHERE tournament_id = :t_id";
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute(['t_id' => $tournament_id]);
-    $participants = $stmt->fetchAll(PDO::FETCH_COLUMN);
-
-    if (count($participants) < 2) return false;
-
-    // 2. Рандом, Перемешиваем массив
-    shuffle($participants);
-
-    // 3. Создаем первый раунд
-    $sql_round = "INSERT INTO rounds (tournament_id, round_number, round_name) VALUES (:t_id, 1, '1/4 Финала')";
-    $pdo->prepare($sql_round)->execute(['t_id' => $tournament_id]);
-    $round_id = $pdo->lastInsertId();
-
-    // 4. Разбиваем игроков на пары и записываем в матчи
-    $pairs = array_chunk($participants, 2);
-
-    foreach ($pairs as $pair) {
-        $p1 = $pair[0];
-        $p2 = isset($pair[1]) ? $pair[1] : null; // Если игрока без пары, p2 = null
-        $winner = ($p2 === null) ? $p1 : null;   // Если пары нет, p1 сразу победитель
-
-        $sql_match = "INSERT INTO matches (round_id, player1_id, player2_id, winner_id) 
-                      VALUES (:r_id, :p1, :p2, :winner)";
-        $pdo->prepare($sql_match)->execute([
-            'r_id' => $round_id,
-            'p1' => $p1,
-            'p2' => $p2,
-            'winner' => $winner
-        ]);
+    if (count($players) < 2) {
+        return false;
     }
-    return true;
+
+    shuffle($players);
+
+    try {
+        $pdo->beginTransaction();
+
+
+        $stmt = $pdo->prepare("INSERT INTO rounds (tournament_id, round_number, round_name) VALUES (?, 1, 'Round 1')");        $stmt->execute([$tournamentId]);
+        $roundId = $pdo->lastInsertId();
+
+        $pairs = array_chunk($players, 2);
+        foreach ($pairs as $pair) {
+            $p1 = $pair[0];
+            $p2 = isset($pair[1]) ? $pair[1] : null;
+
+            $stmt = $pdo->prepare("INSERT INTO matches (round_id, player1_id, player2_id) VALUES (?, ?, ?)");
+            $stmt->execute([$roundId, $p1, $p2]);
+
+            if ($p2 === null) {
+                $matchId = $pdo->lastInsertId();
+                $pdo->prepare("UPDATE matches SET winner_id = ? WHERE id = ?")->execute([$p1, $matchId]);
+            }
+        }
+
+        $pdo->commit();
+        return true;
+    } catch (Exception $e) {
+        $pdo->rollBack();
+        die("Критическая ошибка SQL: " . $e->getMessage());
+    }
 }

@@ -11,15 +11,20 @@
         .match { border: 1px solid #ccc; padding: 10px; margin: 10px 0; background: #eee; width: 150px; }
         .player { padding: 5px; border-bottom: 1px solid #ddd; }
         .winner { background: #d4edda; font-weight: bold; }
-        nav { margin-bottom: 20px; }
+        nav { margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
     </style>
 </head>
 <body>
 <div class="container">
     <nav>
-        <a href="index.php?action=list">Игроки</a> |
+        <a href="index.php?action=players">Игроки</a> |
         <a href="index.php?action=bracket">Сетка</a> |
-        <a href="index.php?action=draw">Провести жеребьевку</a>
+        <?php if ($isAdmin): ?>
+            <a href="index.php?action=draw">Провести жеребьевку</a> |
+            <a href="index.php?logout=1" style="color: gray;">Выйти</a>
+        <?php else: ?>
+            <a href="index.php?login=admin" style="color: green;">Админ</a>
+        <?php endif; ?>
     </nav>
 
     <?php include($view_content); ?>

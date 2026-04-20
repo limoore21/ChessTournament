@@ -1,7 +1,12 @@
+<?php
+if (!isset($players)) {
+    $players = [];
+}
+?>
 <h2>Участники турнира</h2>
 
 <div style="margin-bottom: 30px; padding: 15px; border: 1px solid #ccc; background: #fafafa;">
-    <form method="POST" action="?action=add_player">
+    <form method="POST" action="index.php?action=add_player">
         <label for="nickname">Добавить нового участника:</label><br><br>
         <input type="text" id="nickname" name="nickname" placeholder="Введите никнейм" required
                style="padding: 8px; width: 200px;">
@@ -14,6 +19,7 @@
     <tr style="background: #eee;">
         <th>ID</th>
         <th>Никнейм</th>
+        <th>История (W/L)</th>
         <th style="width: 100px;">Действие</th>
     </tr>
     </thead>
@@ -24,15 +30,23 @@
                 <td><?= $player['id'] ?></td>
                 <td><?= htmlspecialchars($player['nickname']) ?></td>
                 <td>
-                    <a href="?action=delete_player&id=<?= $player['id'] ?>"
-                       onclick="return confirm('Вы уверены, что хотите удалить этого игрока?')"
-                       style="color: #d9534f; text-decoration: none;">Удалить</a>
+                    <span style="color: green; font-weight: bold;"><?= $player['wins'] ?></span> /
+                    <span style="color: red; font-weight: bold;"><?= $player['losses'] ?></span>
+                </td>
+                <td>
+                    <?php if ($isAdmin): ?>
+                        <a href="?action=delete_player&id=<?= $player['id'] ?>"
+                           onclick="return confirm('Вы уверены, что хотите удалить этого игрока?')"
+                           style="color: #d9534f; text-decoration: none;">Удалить</a>
+                    <?php else: ?>
+                        <span style="color: #ccc;">Нет прав</span>
+                    <?php endif; ?>
                 </td>
             </tr>
         <?php endforeach; ?>
     <?php else: ?>
         <tr>
-            <td colspan="3" style="text-align: center;">Список игроков пуст</td>
+            <td colspan="4" style="text-align: center;">Список игроков пуст</td>
         </tr>
     <?php endif; ?>
     </tbody>
