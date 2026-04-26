@@ -93,29 +93,14 @@ Chess Tournament Manager (Single Elimination)
 
 Разработчик: Максимко
 
-
-
-
-
-
-
-
-
-chess_tournament/
-├── index.php # Главный контроллер
-├── config.php # Подключение к БД
-├── models/ # Логика (жеребьевка, игроки)
-├── views/ # Шаблоны (layout, players, bracket)
-└── images/ # Блок-схемы для ТЗ
-
-
-
 Обещанный SQL-запрос:
 
 CREATE DATABASE IF NOT EXISTS chess_tournament;
 USE chess_tournament;
 
+
 SET FOREIGN_KEY_CHECKS = 0;
+
 
 -- Таблица игроков
 DROP TABLE IF EXISTS players;
@@ -125,6 +110,7 @@ nickname VARCHAR(100) NOT NULL,
 PRIMARY KEY (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+
 -- Таблица турниров
 DROP TABLE IF EXISTS tournaments;
 CREATE TABLE tournaments (
@@ -132,6 +118,7 @@ id INT(11) NOT NULL AUTO_INCREMENT,
 title VARCHAR(255) NOT NULL,
 PRIMARY KEY (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 
 -- Таблица раундов
 DROP TABLE IF EXISTS rounds;
@@ -143,6 +130,7 @@ round_name VARCHAR(100) DEFAULT NULL,
 PRIMARY KEY (id),
 CONSTRAINT fk_round_tournament FOREIGN KEY (tournament_id) REFERENCES tournaments(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 
 -- Таблица матчей
 DROP TABLE IF EXISTS matches;
@@ -159,6 +147,7 @@ CONSTRAINT fk_player2 FOREIGN KEY (player2_id) REFERENCES players(id) ON DELETE 
 CONSTRAINT fk_winner FOREIGN KEY (winner_id) REFERENCES players(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+
 -- Таблица участников турнира (связующая)
 DROP TABLE IF EXISTS tournament_participants;
 CREATE TABLE tournament_participants (
@@ -169,8 +158,10 @@ CONSTRAINT fk_tp_tournament FOREIGN KEY (tournament_id) REFERENCES tournaments(i
 CONSTRAINT fk_tp_player FOREIGN KEY (player_id) REFERENCES players(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+
 -- Включаем проверки обратно
 SET FOREIGN_KEY_CHECKS = 1;
+
 
 -- один стартовый турнир, чтобы всё сразу работало
 INSERT INTO tournaments (id, title) VALUES (1, 'Турнир номер один');
