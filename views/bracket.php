@@ -32,7 +32,6 @@
                                     <span class="match-completed" style="display: <?= !empty($match['winner_id']) ? 'inline-block' : 'none' ?>">✓ ЗАВЕРШЕН</span>
                                 </div>
 
-                                <!-- Счет матча -->
                                 <div class="match-scores" style="display: flex; justify-content: center; gap: 15px; margin: 8px 0; padding: 4px; background: #f0ead8; border-radius: 20px;">
                                     <span style="font-size: 16px; font-weight: bold; color: <?= (($match['player1_score'] ?? 0) > 0) ? '#2c5f2d' : '#999' ?>">
                                         <?= $match['player1_score'] ?? 0 ?>
@@ -87,7 +86,6 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Находим все кнопки победы
         const winButtons = document.querySelectorAll('.win-button');
 
         winButtons.forEach(button => {
@@ -99,11 +97,9 @@
                 const buttonElement = this;
                 const matchCard = buttonElement.closest('.match-card');
 
-                // Отключаем кнопку на время запроса
                 buttonElement.disabled = true;
                 buttonElement.textContent = '...';
 
-                // Отправляем AJAX запрос
                 fetch('index.php?action=set_winner_ajax', {
                     method: 'POST',
                     headers: {
@@ -114,7 +110,6 @@
                     .then(response => response.json())
                     .then(data => {
                         if (data.success) {
-                            // Обновляем счет
                             const scoresDiv = matchCard.querySelector('.match-scores');
                             if (scoresDiv && data.new_scores) {
                                 scoresDiv.innerHTML = `
@@ -128,9 +123,7 @@
                         `;
                             }
 
-                            // Если матч завершен
                             if (data.match_completed) {
-                                // Подсвечиваем победителя
                                 const players = matchCard.querySelectorAll('.match-player');
                                 players.forEach(player => {
                                     const playerId = player.getAttribute('data-player-id');
@@ -139,32 +132,26 @@
                                     }
                                 });
 
-                                // Убираем все кнопки победы в этом матче
                                 const buttons = matchCard.querySelectorAll('.win-button');
                                 buttons.forEach(btn => btn.remove());
 
-                                // Отмечаем матч как завершенный
                                 const completedSpan = matchCard.querySelector('.match-completed');
                                 if (completedSpan) {
                                     completedSpan.style.display = 'inline-block';
                                 }
                             } else {
-                                // Включаем кнопку обратно для следующей партии
                                 buttonElement.disabled = false;
                                 buttonElement.textContent = 'ПОБЕДА';
                             }
 
-                            // Если есть новый раунд - добавляем его
                             if (data.new_round) {
                                 addNewRound(data.new_round);
                             }
 
-                            // Если есть чемпион - показываем
                             if (data.champion) {
                                 showChampion(data.champion);
                             }
 
-                            // Показываем уведомление
                             showNotification('ПОБЕДА ЗАСЧИТАНА!', 'success');
                         } else {
                             showNotification(data.error || 'ОШИБКА!', 'error');
@@ -182,11 +169,9 @@
         });
 
         function addNewRound(roundData) {
-            // Проверяем, есть ли уже такой раунд
             const existingRound = document.querySelector(`.round[data-round-id="${roundData.round_id}"]`);
             if (existingRound) return;
 
-            // Создаем новый раунд
             const roundsGrid = document.querySelector('.rounds-grid');
             const newRound = document.createElement('div');
             newRound.className = 'round';
@@ -233,17 +218,14 @@
 
             roundsGrid.appendChild(newRound);
 
-            // Добавляем обработчики для новых кнопок
             attachWinButtonHandlers();
 
-            // Плавно прокручиваем к новому раунду
             newRound.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
         }
 
         function attachWinButtonHandlers() {
             const newButtons = document.querySelectorAll('.win-button');
             newButtons.forEach(button => {
-                // Убираем старые обработчики, чтобы не дублировать
                 const oldHandler = button._handler;
                 if (oldHandler) button.removeEventListener('click', oldHandler);
 
@@ -253,6 +235,7 @@
                     const winnerId = this.getAttribute('data-winner-id');
                     const buttonElement = this;
                     const matchCard = buttonElement.closest('.match-card');
+
 
                     buttonElement.disabled = true;
                     buttonElement.textContent = '...';
@@ -265,7 +248,6 @@
                         .then(response => response.json())
                         .then(data => {
                             if (data.success) {
-                                // Обновляем счет
                                 const scoresDiv = matchCard.querySelector('.match-scores');
                                 if (scoresDiv && data.new_scores) {
                                     scoresDiv.innerHTML = `
@@ -364,7 +346,6 @@
             }, 2000);
         }
 
-        // Добавляем анимации в стили
         const style = document.createElement('style');
         style.textContent = `
         @keyframes slideIn {

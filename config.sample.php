@@ -1,12 +1,11 @@
 <?php
-ini_set('display_errors', 1);
-error_reporting(E_ALL);
-header('Content-Type: text/html; charset=utf-8');
+// config.sample.php - пример конфигурации
+// Скопируйте этот файл в config.php и заполните свои данные
 
-$host = 'sql100.infinityfree.com';
-$db   = 'if0_41719034_chess_tournament';
-$user = '#';
-$pass = '#';
+$host = 'localhost';
+$db   = 'chess_tournament';
+$user = 'root';
+$pass = 'ваш_пароль';
 $charset = 'utf8mb4';
 
 $dsn = "mysql:host=$host;dbname=$db;charset=$charset";
@@ -18,9 +17,7 @@ $options = [
 
 try {
     $pdo = new PDO($dsn, $user, $pass, $options);
-    $pdo->exec("SET NAMES utf8mb4");
-    $pdo->exec("SET CHARACTER SET utf8mb4");
-
+    echo "Подключение успешно!";
 } catch (\PDOException $e) {
     die("Ошибка подключения: " . $e->getMessage());
 }
