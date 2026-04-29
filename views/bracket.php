@@ -33,22 +33,16 @@
                                 </div>
 
                                 <div class="match-scores" style="display: flex; justify-content: center; gap: 15px; margin: 8px 0; padding: 4px; background: #f0ead8; border-radius: 20px;">
-                                    <span style="font-size: 16px; font-weight: bold; color: <?= (($match['player1_score'] ?? 0) > 0) ? '#2c5f2d' : '#999' ?>">
-                                        <?= $match['player1_score'] ?? 0 ?>
-                                    </span>
+                                    <span style="font-size: 16px; font-weight: bold; color: <?= (($match['player1_score'] ?? 0) > 0) ? '#2c5f2d' : '#999' ?>"><?= $match['player1_score'] ?? 0 ?></span>
                                     <span style="color: #c9a84c; font-weight: bold;">:</span>
-                                    <span style="font-size: 16px; font-weight: bold; color: <?= (($match['player2_score'] ?? 0) > 0) ? '#2c5f2d' : '#999' ?>">
-                                        <?= $match['player2_score'] ?? 0 ?>
-                                    </span>
+                                    <span style="font-size: 16px; font-weight: bold; color: <?= (($match['player2_score'] ?? 0) > 0) ? '#2c5f2d' : '#999' ?>"><?= $match['player2_score'] ?? 0 ?></span>
                                 </div>
 
                                 <div class="match-players">
                                     <div class="match-player <?= (isset($match['winner_id']) && $match['winner_id'] == $match['player1_id']) ? 'winner' : '' ?>" data-player-id="<?= $match['player1_id'] ?>">
                                         <div class="player-avatar">♜</div>
                                         <div class="player-info">
-                                            <div class="player-name">
-                                                <?= htmlspecialchars($match['p1_name'] ?? '— ОЖИДАНИЕ —') ?>
-                                            </div>
+                                            <div class="player-name"><?= htmlspecialchars($match['p1_name'] ?? '— ОЖИДАНИЕ —') ?></div>
                                             <?php if (empty($match['winner_id']) && !empty($match['player1_id']) && $isAdmin): ?>
                                                 <button class="win-button" data-match-id="<?= $match['id'] ?>" data-winner-id="<?= $match['player1_id'] ?>">ПОБЕДА</button>
                                             <?php endif; ?>
@@ -60,9 +54,7 @@
                                     <div class="match-player <?= (isset($match['winner_id']) && $match['winner_id'] == $match['player2_id']) ? 'winner' : '' ?>" data-player-id="<?= $match['player2_id'] ?>">
                                         <div class="player-avatar">♞</div>
                                         <div class="player-info">
-                                            <div class="player-name">
-                                                <?= htmlspecialchars($match['p2_name'] ?? '— ОЖИДАНИЕ —') ?>
-                                            </div>
+                                            <div class="player-name"><?= htmlspecialchars($match['p2_name'] ?? '— ОЖИДАНИЕ —') ?></div>
                                             <?php if (empty($match['winner_id']) && !empty($match['player2_id']) && $isAdmin): ?>
                                                 <button class="win-button" data-match-id="<?= $match['id'] ?>" data-winner-id="<?= $match['player2_id'] ?>">ПОБЕДА</button>
                                             <?php endif; ?>
@@ -86,107 +78,80 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        const winButtons = document.querySelectorAll('.win-button');
 
-        winButtons.forEach(button => {
-            button.addEventListener('click', function(e) {
-                e.preventDefault();
+        function handleWin(button) {
+            const matchId = button.dataset.matchId;
+            const winnerId = button.dataset.winnerId;
+            const matchCard = button.closest('.match-card');
 
-                const matchId = this.getAttribute('data-match-id');
-                const winnerId = this.getAttribute('data-winner-id');
-                const buttonElement = this;
-                const matchCard = buttonElement.closest('.match-card');
+            button.disabled = true;
+            button.textContent = '...';
 
-                buttonElement.disabled = true;
-                buttonElement.textContent = '...';
-
-                fetch('index.php?action=set_winner_ajax', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: 'match_id=' + encodeURIComponent(matchId) + '&winner_id=' + encodeURIComponent(winnerId)
+            fetch('index.php?action=set_winner_ajax', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: 'match_id=' + matchId + '&winner_id=' + winnerId
+            })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        updateMatchUI(matchCard, winnerId, data);
+                        if (data.new_round) addNewRound(data.new_round);
+                        if (data.champion) showChampion(data.champion);
+                        showNotification('ПОБЕДА ЗАСЧИТАНА!', 'success');
+                    } else {
+                        showNotification(data.error || 'ОШИБКА!', 'error');
+                        button.disabled = false;
+                        button.textContent = 'ПОБЕДА';
+                    }
                 })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            const scoresDiv = matchCard.querySelector('.match-scores');
-                            if (scoresDiv && data.new_scores) {
-                                scoresDiv.innerHTML = `
-                            <span style="font-size: 16px; font-weight: bold; color: ${data.new_scores.player1 > 0 ? '#2c5f2d' : '#999'}">
-                                ${data.new_scores.player1}
-                            </span>
-                            <span style="color: #c9a84c; font-weight: bold;">:</span>
-                            <span style="font-size: 16px; font-weight: bold; color: ${data.new_scores.player2 > 0 ? '#2c5f2d' : '#999'}">
-                                ${data.new_scores.player2}
-                            </span>
-                        `;
-                            }
+                .catch(() => {
+                    showNotification('ОШИБКА СОЕДИНЕНИЯ!', 'error');
+                    button.disabled = false;
+                    button.textContent = 'ПОБЕДА';
+                });
+        }
 
-                            if (data.match_completed) {
-                                const players = matchCard.querySelectorAll('.match-player');
-                                players.forEach(player => {
-                                    const playerId = player.getAttribute('data-player-id');
-                                    if (playerId == winnerId) {
-                                        player.classList.add('winner');
-                                    }
-                                });
+        function updateMatchUI(matchCard, winnerId, data) {
+            const scoresDiv = matchCard.querySelector('.match-scores');
+            if (scoresDiv && data.new_scores) {
+                scoresDiv.innerHTML = `
+                <span style="font-size: 16px; font-weight: bold; color: ${data.new_scores.player1 > 0 ? '#2c5f2d' : '#999'}">${data.new_scores.player1}</span>
+                <span style="color: #c9a84c; font-weight: bold;">:</span>
+                <span style="font-size: 16px; font-weight: bold; color: ${data.new_scores.player2 > 0 ? '#2c5f2d' : '#999'}">${data.new_scores.player2}</span>
+            `;
+            }
 
-                                const buttons = matchCard.querySelectorAll('.win-button');
-                                buttons.forEach(btn => btn.remove());
-
-                                const completedSpan = matchCard.querySelector('.match-completed');
-                                if (completedSpan) {
-                                    completedSpan.style.display = 'inline-block';
-                                }
-                            } else {
-                                buttonElement.disabled = false;
-                                buttonElement.textContent = 'ПОБЕДА';
-                            }
-
-                            if (data.new_round) {
-                                addNewRound(data.new_round);
-                            }
-
-                            if (data.champion) {
-                                showChampion(data.champion);
-                            }
-
-                            showNotification('ПОБЕДА ЗАСЧИТАНА!', 'success');
-                        } else {
-                            showNotification(data.error || 'ОШИБКА!', 'error');
-                            buttonElement.disabled = false;
-                            buttonElement.textContent = 'ПОБЕДА';
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        showNotification('ОШИБКА СОЕДИНЕНИЯ!', 'error');
-                        buttonElement.disabled = false;
-                        buttonElement.textContent = 'ПОБЕДА';
-                    });
-            });
-        });
+            if (data.match_completed) {
+                matchCard.querySelectorAll('.match-player').forEach(p => {
+                    if (p.dataset.playerId == winnerId) p.classList.add('winner');
+                });
+                matchCard.querySelectorAll('.win-button').forEach(btn => btn.remove());
+                const completedSpan = matchCard.querySelector('.match-completed');
+                if (completedSpan) completedSpan.style.display = 'inline-block';
+            } else {
+                const btn = matchCard.querySelector('.win-button');
+                if (btn) {
+                    btn.disabled = false;
+                    btn.textContent = 'ПОБЕДА';
+                }
+            }
+        }
 
         function addNewRound(roundData) {
-            const existingRound = document.querySelector(`.round[data-round-id="${roundData.round_id}"]`);
-            if (existingRound) return;
+            if (document.querySelector(`.round[data-round-id="${roundData.round_id}"]`)) return;
 
             const roundsGrid = document.querySelector('.rounds-grid');
-            const newRound = document.createElement('div');
-            newRound.className = 'round';
-            newRound.setAttribute('data-round-id', roundData.round_id);
-
-            newRound.innerHTML = `
-            <div class="round-title">
-                ${roundData.round_name.replace('Round', 'РАУНД')}
-                <span class="round-number">#${roundData.round_number}</span>
-            </div>
+            const roundDiv = document.createElement('div');
+            roundDiv.className = 'round';
+            roundDiv.setAttribute('data-round-id', roundData.round_id);
+            roundDiv.innerHTML = `
+            <div class="round-title">${roundData.round_name.replace('Round', 'РАУНД')}<span class="round-number">#${roundData.round_number}</span></div>
             <div class="matches-container">
-                ${roundData.matches.map(match => `
-                    <div class="match-card" data-match-id="${match.id}">
+                ${roundData.matches.map(m => `
+                    <div class="match-card" data-match-id="${m.id}">
                         <div class="match-header">
-                            <span class="match-number">МАТЧ ${match.id}</span>
+                            <span class="match-number">МАТЧ ${m.id}</span>
                             <span class="match-completed" style="display: none">✓ ЗАВЕРШЕН</span>
                         </div>
                         <div class="match-scores" style="display: flex; justify-content: center; gap: 15px; margin: 8px 0; padding: 4px; background: #f0ead8; border-radius: 20px;">
@@ -195,19 +160,19 @@
                             <span style="font-size: 16px; font-weight: bold; color: #999">0</span>
                         </div>
                         <div class="match-players">
-                            <div class="match-player" data-player-id="${match.player1_id || ''}">
+                            <div class="match-player" data-player-id="${m.player1_id || ''}">
                                 <div class="player-avatar">♜</div>
                                 <div class="player-info">
-                                    <div class="player-name">${match.p1_name || '— ОЖИДАНИЕ —'}</div>
-                                    ${match.player1_id && match.can_edit ? `<button class="win-button" data-match-id="${match.id}" data-winner-id="${match.player1_id}">ПОБЕДА</button>` : ''}
+                                    <div class="player-name">${m.p1_name || '— ОЖИДАНИЕ —'}</div>
+                                    ${m.player1_id && m.can_edit ? `<button class="win-button" data-match-id="${m.id}" data-winner-id="${m.player1_id}">ПОБЕДА</button>` : ''}
                                 </div>
                             </div>
                             <div class="match-vs">⚔️</div>
-                            <div class="match-player" data-player-id="${match.player2_id || ''}">
+                            <div class="match-player" data-player-id="${m.player2_id || ''}">
                                 <div class="player-avatar">♞</div>
                                 <div class="player-info">
-                                    <div class="player-name">${match.p2_name || '— ОЖИДАНИЕ —'}</div>
-                                    ${match.player2_id && match.can_edit ? `<button class="win-button" data-match-id="${match.id}" data-winner-id="${match.player2_id}">ПОБЕДА</button>` : ''}
+                                    <div class="player-name">${m.p2_name || '— ОЖИДАНИЕ —'}</div>
+                                    ${m.player2_id && m.can_edit ? `<button class="win-button" data-match-id="${m.id}" data-winner-id="${m.player2_id}">ПОБЕДА</button>` : ''}
                                 </div>
                             </div>
                         </div>
@@ -215,148 +180,54 @@
                 `).join('')}
             </div>
         `;
-
-            roundsGrid.appendChild(newRound);
-
-            attachWinButtonHandlers();
-
-            newRound.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
+            roundsGrid.appendChild(roundDiv);
+            attachWinHandlers();
+            roundDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
         }
 
-        function attachWinButtonHandlers() {
-            const newButtons = document.querySelectorAll('.win-button');
-            newButtons.forEach(button => {
-                const oldHandler = button._handler;
-                if (oldHandler) button.removeEventListener('click', oldHandler);
-
-                const handler = function(e) {
-                    e.preventDefault();
-                    const matchId = this.getAttribute('data-match-id');
-                    const winnerId = this.getAttribute('data-winner-id');
-                    const buttonElement = this;
-                    const matchCard = buttonElement.closest('.match-card');
-
-
-                    buttonElement.disabled = true;
-                    buttonElement.textContent = '...';
-
-                    fetch('index.php?action=set_winner_ajax', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                        body: 'match_id=' + encodeURIComponent(matchId) + '&winner_id=' + encodeURIComponent(winnerId)
-                    })
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.success) {
-                                const scoresDiv = matchCard.querySelector('.match-scores');
-                                if (scoresDiv && data.new_scores) {
-                                    scoresDiv.innerHTML = `
-                                <span style="font-size: 16px; font-weight: bold; color: ${data.new_scores.player1 > 0 ? '#2c5f2d' : '#999'}">
-                                    ${data.new_scores.player1}
-                                </span>
-                                <span style="color: #c9a84c; font-weight: bold;">:</span>
-                                <span style="font-size: 16px; font-weight: bold; color: ${data.new_scores.player2 > 0 ? '#2c5f2d' : '#999'}">
-                                    ${data.new_scores.player2}
-                                </span>
-                            `;
-                                }
-
-                                if (data.match_completed) {
-                                    const players = matchCard.querySelectorAll('.match-player');
-                                    players.forEach(player => {
-                                        const playerId = player.getAttribute('data-player-id');
-                                        if (playerId == winnerId) {
-                                            player.classList.add('winner');
-                                        }
-                                    });
-                                    const buttons = matchCard.querySelectorAll('.win-button');
-                                    buttons.forEach(btn => btn.remove());
-                                    const completedSpan = matchCard.querySelector('.match-completed');
-                                    if (completedSpan) completedSpan.style.display = 'inline-block';
-                                } else {
-                                    buttonElement.disabled = false;
-                                    buttonElement.textContent = 'ПОБЕДА';
-                                }
-
-                                if (data.new_round) addNewRound(data.new_round);
-                                if (data.champion) showChampion(data.champion);
-                                showNotification('ПОБЕДА ЗАСЧИТАНА!', 'success');
-                            } else {
-                                showNotification(data.error || 'ОШИБКА!', 'error');
-                                buttonElement.disabled = false;
-                                buttonElement.textContent = 'ПОБЕДА';
-                            }
-                        })
-                        .catch(error => {
-                            showNotification('ОШИБКА СОЕДИНЕНИЯ!', 'error');
-                            buttonElement.disabled = false;
-                            buttonElement.textContent = 'ПОБЕДА';
-                        });
-                };
-                button.addEventListener('click', handler);
-                button._handler = handler;
-            });
-        }
-
-        function showChampion(championName) {
-            let championBlock = document.querySelector('.champion-card');
-
-            if (championBlock) {
-                championBlock.querySelector('.champion-name').textContent = championName;
-                championBlock.style.display = 'block';
+        function showChampion(name) {
+            let champBlock = document.querySelector('.champion-card');
+            if (champBlock) {
+                champBlock.querySelector('.champion-name').textContent = name;
+                champBlock.style.display = 'block';
             } else {
-                const bracketWrapper = document.querySelector('.bracket-wrapper');
-                const newChampion = document.createElement('div');
-                newChampion.className = 'champion-card';
-                newChampion.innerHTML = `
-                <h2>ЧЕМПИОН ТУРНИРА</h2>
-                <div class="champion-name">${championName}</div>
-                <div style="font-size: 28px;">♔ ♕ ♚</div>
-            `;
-                bracketWrapper.parentNode.insertBefore(newChampion, bracketWrapper);
+                const wrapper = document.querySelector('.bracket-wrapper');
+                const newChamp = document.createElement('div');
+                newChamp.className = 'champion-card';
+                newChamp.innerHTML = `<h2>ЧЕМПИОН ТУРНИРА</h2><div class="champion-name">${name}</div><div style="font-size: 28px;">♔ ♕ ♚</div>`;
+                wrapper.parentNode.insertBefore(newChamp, wrapper);
             }
-
             const resetBtn = document.querySelector('.btn-reset');
             if (resetBtn) resetBtn.style.display = 'none';
         }
 
-        function showNotification(message, type) {
-            const notification = document.createElement('div');
-            notification.className = `notification notification-${type}`;
-            notification.textContent = message;
-            notification.style.cssText = `
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            padding: 12px 20px;
-            background: ${type === 'success' ? '#2c5f2d' : '#8b5a4c'};
-            color: #e8d5a8;
-            border-radius: 8px;
-            font-size: 14px;
-            z-index: 2000;
-            animation: slideIn 0.3s ease;
-            font-family: Georgia, serif;
-        `;
-
-            document.body.appendChild(notification);
-
+        function showNotification(msg, type) {
+            const notif = document.createElement('div');
+            notif.textContent = msg;
+            notif.style.cssText = `position:fixed; bottom:20px; right:20px; padding:12px 20px; background:${type === 'success' ? '#2c5f2d' : '#8b5a4c'}; color:#e8d5a8; border-radius:8px; z-index:2000; font-family:Georgia,serif; animation:slideIn 0.3s ease;`;
+            document.body.appendChild(notif);
             setTimeout(() => {
-                notification.style.animation = 'slideOut 0.3s ease';
-                setTimeout(() => notification.remove(), 300);
+                notif.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => notif.remove(), 300);
             }, 2000);
         }
 
+        function attachWinHandlers() {
+            document.querySelectorAll('.win-button').forEach(btn => {
+                btn.removeEventListener('click', btn._handler);
+                const handler = (e) => {
+                    e.preventDefault();
+                    handleWin(btn);
+                };
+                btn.addEventListener('click', handler);
+                btn._handler = handler;
+            });
+        }
+
         const style = document.createElement('style');
-        style.textContent = `
-        @keyframes slideIn {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-        @keyframes slideOut {
-            from { transform: translateX(0); opacity: 1; }
-            to { transform: translateX(100%); opacity: 0; }
-        }
-    `;
+        style.textContent = `@keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}@keyframes slideOut{from{transform:translateX(0);opacity:1}to{transform:translateX(100%);opacity:0}}`;
         document.head.appendChild(style);
+
+        attachWinHandlers();
     });
 </script>

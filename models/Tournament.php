@@ -1,10 +1,10 @@
 <?php
+
+// рисуем турнирную сетку
 function drawTournament($pdo, $tournamentId) {
-    $stmt = $pdo->query("SELECT id FROM players");
-    $players = $stmt->fetchAll(PDO::FETCH_COLUMN);
+    $players = $pdo->query("SELECT id FROM players")->fetchAll(PDO::FETCH_COLUMN);
 
     if (count($players) < 2) {
-        error_log("drawTournament: Need at least 2 players, have " . count($players));
         return false;
     }
 
@@ -13,147 +13,94 @@ function drawTournament($pdo, $tournamentId) {
     try {
         $pdo->beginTransaction();
 
-        $stmt = $pdo->prepare("SELECT id FROM tournaments WHERE id = ?");
-        $stmt->execute([$tournamentId]);
-        if (!$stmt->fetch()) {
-            $pdo->prepare("INSERT INTO tournaments (id, name) VALUES (?, 'Main Tournament') ON DUPLICATE KEY UPDATE name = name")
-                ->execute([$tournamentId]);
-        }
-
-        $stmt = $pdo->prepare("INSERT INTO rounds (tournament_id, round_number, round_name) VALUES (?, 1, 'Round 1')");
-        $stmt->execute([$tournamentId]);
+        // создаём первый раунд
+        $pdo->prepare("INSERT INTO rounds (tournament_id, round_number, round_name) VALUES (?, 1, 'Раунд 1')")->execute([$tournamentId]);
         $roundId = $pdo->lastInsertId();
 
+        // создаём матчи
         $pairs = array_chunk($players, 2);
         foreach ($pairs as $pair) {
             $p1 = $pair[0];
-            $p2 = isset($pair[1]) ? $pair[1] : null;
+            $p2 = $pair[1] ?? null;
 
-            $stmt = $pdo->prepare("INSERT INTO matches (round_id, player1_id, player2_id) VALUES (?, ?, ?)");
-            $stmt->execute([$roundId, $p1, $p2]);
+            $pdo->prepare("INSERT INTO matches (round_id, player1_id, player2_id, player1_score, player2_score) VALUES (?, ?, ?, 0, 0)")->execute([$roundId, $p1, $p2]);
 
-            if ($p2 === null) {
+            // если игрок без пары - автоматическая победа
+            if (!$p2) {
                 $matchId = $pdo->lastInsertId();
-                $pdo->prepare("UPDATE matches SET winner_id = ? WHERE id = ?")->execute([$p1, $matchId]);
-                error_log("Auto-win for player $p1 (bye)");
+                $pdo->prepare("UPDATE matches SET winner_id = ?, is_completed = 1 WHERE id = ?")->execute([$p1, $matchId]);
             }
         }
 
         $pdo->commit();
-        error_log("drawTournament: Successfully created " . count($pairs) . " matches");
         return true;
 
     } catch (Exception $e) {
         $pdo->rollBack();
-        error_log("drawTournament error: " . $e->getMessage());
-        die("SQL Error: " . $e->getMessage());
+        return false;
     }
 }
 
-function createNextRound($pdo, $tournamentId, $currentRoundId) {
+// создаём следующий раунд
+function createNextRound($pdo, $tournamentId, $currentRoundId, $ajaxMode = false) {
+    // собираем победителей текущего раунда
     $stmt = $pdo->prepare("SELECT winner_id FROM matches WHERE round_id = ? AND winner_id IS NOT NULL");
     $stmt->execute([$currentRoundId]);
     $winners = $stmt->fetchAll(PDO::FETCH_COLUMN);
 
-    if (count($winners) < 2) return;
+    if (count($winners) < 2) {
+        return $ajaxMode ? null : null;
+    }
 
+    // номер следующего раунда
     $stmt = $pdo->prepare("SELECT round_number FROM rounds WHERE id = ?");
     $stmt->execute([$currentRoundId]);
-    $currentNum = $stmt->fetchColumn();
-    $nextNum = $currentNum + 1;
+    $nextNum = $stmt->fetchColumn() + 1;
 
-    $stmt = $pdo->prepare("INSERT INTO rounds (tournament_id, round_number, round_name) VALUES (?, ?, ?)");
-    $stmt->execute([$tournamentId, $nextNum, "Round $nextNum"]);
+    // создаём новый раунд
+    $pdo->prepare("INSERT INTO rounds (tournament_id, round_number, round_name) VALUES (?, ?, ?)")->execute([$tournamentId, $nextNum, "Раунд $nextNum"]);
     $nextRoundId = $pdo->lastInsertId();
 
+    // создаём матчи для нового раунда
     $pairs = array_chunk($winners, 2);
     foreach ($pairs as $pair) {
         $p1 = $pair[0];
         $p2 = $pair[1] ?? null;
 
-        $stmt = $pdo->prepare("INSERT INTO matches (round_id, player1_id, player2_id) VALUES (?, ?, ?)");
-        $stmt->execute([$nextRoundId, $p1, $p2]);
+        $pdo->prepare("INSERT INTO matches (round_id, player1_id, player2_id, player1_score, player2_score) VALUES (?, ?, ?, 0, 0)")->execute([$nextRoundId, $p1, $p2]);
 
-        if (!$p2) {
-            $matchId = $pdo->lastInsertId();
-            $pdo->prepare("UPDATE matches SET winner_id = ? WHERE id = ?")->execute([$p1, $matchId]);
-        }
-    }
-}
-
-function createNextRoundAjax($pdo, $tournamentId, $currentRoundId) {
-    $stmt = $pdo->prepare("SELECT winner_id FROM matches WHERE round_id = ? AND winner_id IS NOT NULL");
-    $stmt->execute([$currentRoundId]);
-    $winners = $stmt->fetchAll(PDO::FETCH_COLUMN);
-
-    if (count($winners) < 2) return null;
-
-    $stmt = $pdo->prepare("SELECT round_number FROM rounds WHERE id = ?");
-    $stmt->execute([$currentRoundId]);
-    $currentNum = $stmt->fetchColumn();
-    $nextNum = $currentNum + 1;
-
-    $stmt = $pdo->prepare("INSERT INTO rounds (tournament_id, round_number, round_name) VALUES (?, ?, ?)");
-    $stmt->execute([$tournamentId, $nextNum, "Round $nextNum"]);
-    $nextRoundId = $pdo->lastInsertId();
-
-    $pairs = array_chunk($winners, 2);
-    foreach ($pairs as $pair) {
-        $p1 = $pair[0];
-        $p2 = $pair[1] ?? null;
-
-        $stmt = $pdo->prepare("INSERT INTO matches (round_id, player1_id, player2_id) VALUES (?, ?, ?)");
-        $stmt->execute([$nextRoundId, $p1, $p2]);
-
-        if (!$p2) {
-            $matchId = $pdo->lastInsertId();
-            $pdo->prepare("UPDATE matches SET winner_id = ? WHERE id = ?")->execute([$p1, $matchId]);
-        }
-    }
-
-    return $nextRoundId;
-}
-function createNextRoundSafe($pdo, $tournamentId, $currentRoundId) {
-    $stmt = $pdo->prepare("SELECT winner_id FROM matches WHERE round_id = ? AND winner_id IS NOT NULL");
-    $stmt->execute([$currentRoundId]);
-    $winners = $stmt->fetchAll(PDO::FETCH_COLUMN);
-
-    if (count($winners) < 2) return null;
-
-    $stmt = $pdo->prepare("SELECT round_number FROM rounds WHERE id = ?");
-    $stmt->execute([$currentRoundId]);
-    $currentNum = $stmt->fetchColumn();
-    $nextNum = $currentNum + 1;
-
-    $stmt = $pdo->prepare("INSERT INTO rounds (tournament_id, round_number, round_name) VALUES (?, ?, ?)");
-    $stmt->execute([$tournamentId, $nextNum, "Раунд $nextNum"]);
-    $nextRoundId = $pdo->lastInsertId();
-
-    $pairs = array_chunk($winners, 2);
-    foreach ($pairs as $pair) {
-        $p1 = $pair[0];
-        $p2 = $pair[1] ?? null;
-
-        $stmt = $pdo->prepare("INSERT INTO matches (round_id, player1_id, player2_id, player1_score, player2_score) VALUES (?, ?, ?, 0, 0)");
-        $stmt->execute([$nextRoundId, $p1, $p2]);
-
+        // автопобеда если без пары
         if (!$p2) {
             $matchId = $pdo->lastInsertId();
             $pdo->prepare("UPDATE matches SET winner_id = ?, is_completed = 1 WHERE id = ?")->execute([$p1, $matchId]);
         }
     }
 
-    return $nextRoundId;
+    return $ajaxMode ? $nextRoundId : $nextRoundId;
 }
 
+function createNextRoundSafe($pdo, $tournamentId, $currentRoundId) {
+    return createNextRound($pdo, $tournamentId, $currentRoundId, true);
+}
+
+// получаем данные раунда для аякс ответа
 function getRoundData($pdo, $roundId) {
     $stmt = $pdo->prepare("
-        SELECT m.*, p1.nickname as p1_name, p2.nickname as p2_name, r.round_name, r.round_number
-        FROM matches m
-        JOIN rounds r ON m.round_id = r.id
-        LEFT JOIN players p1 ON m.player1_id = p1.id
-        LEFT JOIN players p2 ON m.player2_id = p2.id
-        WHERE r.id = ?
+        SELECT 
+            matches.id, 
+            matches.player1_id, 
+            matches.player2_id, 
+            matches.player1_score, 
+            matches.player2_score, 
+            players1.nickname as p1_name, 
+            players2.nickname as p2_name, 
+            rounds.round_name, 
+            rounds.round_number
+        FROM matches
+        JOIN rounds ON matches.round_id = rounds.id
+        LEFT JOIN players as players1 ON matches.player1_id = players1.id
+        LEFT JOIN players as players2 ON matches.player2_id = players2.id
+        WHERE rounds.id = ?
     ");
     $stmt->execute([$roundId]);
     $matches = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -171,8 +118,8 @@ function getRoundData($pdo, $roundId) {
                 'player2_id' => $m['player2_id'],
                 'p1_name' => $m['p1_name'],
                 'p2_name' => $m['p2_name'],
-                'player1_score' => $m['player1_score'] ?? 0,
-                'player2_score' => $m['player2_score'] ?? 0,
+                'player1_score' => (int)$m['player1_score'],
+                'player2_score' => (int)$m['player2_score'],
                 'can_edit' => true
             ];
         }, $matches)
