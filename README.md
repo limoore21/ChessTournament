@@ -1,4 +1,4 @@
-#Chess Tournament Manager
+# Chess Tournament Manager
 
 > Веб-приложение для проведения шахматных турниров по олимпийской системе
 
@@ -6,168 +6,219 @@
 
 ---
 
-## Блок-схемы (ТЗ)
-Блок-схема работы приложения
-![Блок-схема работы приложения](./images/БЛОК-СХЕМА%20РАБОТЫ%20ПРИЛОЖЕНИЯ.png)
+## 📸 Блок-схемы (ТЗ)
+
+| Название | Схема |
+|----------|-------|
+| Блок-схема работы приложения | ![](./images/БЛОК-СХЕМА%20РАБОТЫ%20ПРИЛОЖЕНИЯ.png) |
+| Блок-схема жеребьевки | ![](./images/БЛОК-СХЕМА%20ЖЕРЕБЬЕВКИ.png) |
+| Блок-схема матча (счет 1:1 и 2:0) | ![](./images/БЛОК-СХЕМА%20МАТЧА%20(СЧЕТ%201%3A1%20и%202%3A0).png) |
 
 
-Блок-схема жеребьевки
-![Блок-схема жеребьевки](./images/БЛОК-СХЕМА%20ЖЕРЕБЬЕВКИ.png)
-
-
-Блок-схема матча (счет 1:1 и 2:0)
-![Блок-схема матча (счет 1:1 и 2:0)](./images/БЛОК-СХЕМА%20МАТЧА%20(СЧЕТ%201%3A1%20и%202%3A0).png)
-
----
 
 ## Что делает проект
 
-Автоматизирует проведение шахматных турниров «на вылет»:
+Автоматизирует проведение шахматных турниров «на вылет» (Single Elimination):
 
 - Добавление и удаление игроков
-- Случайная жеребьевка
+- Случайная жеребьевка с поддержкой нечётного количества (bye)
 - Турнирная сетка в реальном времени
+- Матчи до 2 побед (Best of 3) с отображением счета
+- AJAX-обновление без перезагрузки страницы
 - Подсчет побед/поражений
-- Определение чемпиона
+- Система рейтинга Эло
+- Определение чемпиона с торжественным поздравлением
 
----
+
 
 ## Технологии
 
-- PHP 8.3
-- MariaDB/Mysql (PDO)
-- HTML/CSS
-- JavaScript (AJAX)
+| Компонент | Технология |
+|-----------|------------|
+| Backend | PHP 8.3 |
+| Database | MariaDB / MySQL (PDO) |
+| Frontend | HTML5, CSS3 |
+| AJAX | JavaScript (Fetch API) |
+| Архитектура | Front Controller (MVC-подобная) |
+| Сервер | Apache / Nginx / OpenServer |
 
----
+
 
 ## Структура проекта
-Chess Tournament Manager (Single Elimination)
 
-    Система для автоматизации проведения шахматных турниров по системе «на вылет».
-    Приложение позволяет управлять списком участников, 
-    генерировать турнирную сетку и в реальном времени вести игроков от первого раунда до финала.
+| Стурктура проекта | ![](./images/изображение.png) |
 
-Текущий статус проекта
 
-    Система полностью функциональна. 
-    Реализован полный цикл турнира: 
-    От регистрации участников до объявления чемпиона.
 
-Что реализовано:
+## Установка и запуск
 
-Архитектура MVC
+### 1. Клонировать репозиторий
+```bash
+git clone https://github.com/limoore21/ChessTournament.git
+cd ChessTournament
 
-    Управление игроками (CRUD): Добавление участников и их удаление
-    Умная жеребьевка: Автоматическое распределение игроков по парам. Система корректно обрабатывает нечетное количество участников (техническая победа).
-    Интерактивная сетка: Визуальное отображение раундов в виде колонок с карточками матчей.
-    Логика продвижения: При выборе победителя в матче система проверяет завершенность раунда и автоматически формирует пары для следующего этапа.
-    Финал и Награждение: Автоматическое определение чемпиона турнира с выводом торжественного поздравления.
+2. Настроить базу данных
 
-Структура проекта
+Выполните SQL-запрос из раздела SQL-запрос в phpMyAdmin или через консоль.
+3. Настроить подключение
 
-    index.php — Главный контроллер, обрабатывает все действия.
-    models/Tournament.php — Основная логика жеребьевки и продвижения.
-    views/players.php — Страница управления участниками.
-    views/bracket.php — Интерактивная турнирная сетка.
-    layout.php — Главный шаблон оформления.
-    config.php — Параметры подключения к базе данных.
+Скопируйте config.sample.php в config.php и укажите свои данные:
+php
 
-Установка и запуск
+$host = 'localhost';
+$db   = 'chess_tournament';
+$user = 'root';
+$pass = '';
 
-    База данных: Импортируйте базу данных из корня проекта, если дамп не работает снизу проложил SQL код(players, tournaments, rounds, matches).
-    Настройка: Укажите свои данные (host, db_name, user, password) в файле config.php.
-    Запустите локальный сервер OpenServer/Apache/Nginx
+4. Запустить
 
-Как пользоваться
+    OpenServer: Поместите папку в domains/
 
-    Перейдите в раздел Игроки и добавьте минимум 6 участников.
-    Нажмите кнопку Провести жеребьевку. Система создаст первый раунд.
-    В разделе Сетка отмечайте победителей в каждом матче кнопкой WIN.
-    Как только все матчи раунда будут завершены, система автоматически создаст следующий этап (Полуфинал/Финал).
-    После победы в последнем матче вы увидите поздравление для чемпиона турнира.
+    Apache: Настройте виртуальный хост
 
-В планах на будущее
+    PHP Built-in server: php -S localhost:8080
 
-    [1] Добавление истории завершенных турниров.
-    [2] Возможность редактирования никнеймов игроков.
-    [3] Генерация PDF-отчета с результатами турнира.
-    [4] Счетчик эло.
-    [5] Оптимизировать сетку под другие виды спорта
+ Как пользоваться
+Шаг	Действие
+1	Перейдите в раздел УЧАСТНИКИ
+2	Добавьте минимум 2 игрока (лучше 4-8)
+3	Нажмите АДМИН → введите пароль 1234
+4	Нажмите ЖЕРЕБЬЕВКА — создастся турнирная сетка
+5	В разделе СЕТКА нажимайте WIN у победителя
+6	Матч идёт до 2 побед (счет 1:0 → 1:1 → 2:1)
+7	Система сама создаёт следующий раунд
+8	В финале появится чемпион
 
-Разработчик: Максимко
 
-Обещанный SQL-запрос:
+ Админ-доступ
+
+    Нажмите АДМИН в меню
+
+    Пароль: 1234
+
+    После входа появляются кнопки: ЖЕРЕБЬЕВКА, WIN, СБРОСИТЬ ИГРОКОВ, ВЫХОД
+
+
+
+ Система рейтинга Эло
+
+    Начальный рейтинг: 1200
+
+    K-фактор: 32
+
+    Формула: R' = R + K * (S - E)
+
+После каждого матча рейтинг пересчитывается автоматически:
+
+    Победа над равным → +16 очков
+
+    Победа над слабым → +8 очков
+
+    Поражение от слабого → -24 очка
+
+Рейтинг отображается в таблице игроков с цветовой индикацией:
+
+     2000+ — золото
+
+     1600-1999 — серебро
+
+     1200-1599 — бронза
+
+     до 1199 — дерево
+
+ SQL-запрос
+sql
 
 CREATE DATABASE IF NOT EXISTS chess_tournament;
 USE chess_tournament;
 
-
 SET FOREIGN_KEY_CHECKS = 0;
-
 
 -- Таблица игроков
 DROP TABLE IF EXISTS players;
 CREATE TABLE players (
-id INT(11) NOT NULL AUTO_INCREMENT,
-nickname VARCHAR(100) NOT NULL,
-PRIMARY KEY (id)
+    id INT(11) NOT NULL AUTO_INCREMENT,
+    nickname VARCHAR(100) NOT NULL,
+    wins INT DEFAULT 0,
+    losses INT DEFAULT 0,
+    elo_rating INT DEFAULT 1200,
+    elo_history TEXT,
+    PRIMARY KEY (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
 
 -- Таблица турниров
 DROP TABLE IF EXISTS tournaments;
 CREATE TABLE tournaments (
-id INT(11) NOT NULL AUTO_INCREMENT,
-title VARCHAR(255) NOT NULL,
-PRIMARY KEY (id)
+    id INT(11) NOT NULL AUTO_INCREMENT,
+    title VARCHAR(255) NOT NULL,
+    PRIMARY KEY (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
 
 -- Таблица раундов
 DROP TABLE IF EXISTS rounds;
 CREATE TABLE rounds (
-id INT(11) NOT NULL AUTO_INCREMENT,
-tournament_id INT(11) NOT NULL,
-round_number INT(11) NOT NULL,
-round_name VARCHAR(100) DEFAULT NULL,
-PRIMARY KEY (id),
-CONSTRAINT fk_round_tournament FOREIGN KEY (tournament_id) REFERENCES tournaments(id) ON DELETE CASCADE
+    id INT(11) NOT NULL AUTO_INCREMENT,
+    tournament_id INT(11) NOT NULL,
+    round_number INT(11) NOT NULL,
+    round_name VARCHAR(100) DEFAULT NULL,
+    PRIMARY KEY (id),
+    CONSTRAINT fk_round_tournament FOREIGN KEY (tournament_id) REFERENCES tournaments(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
 
 -- Таблица матчей
 DROP TABLE IF EXISTS matches;
 CREATE TABLE matches (
-id INT(11) NOT NULL AUTO_INCREMENT,
-round_id INT(11) NOT NULL,
-player1_id INT(11) DEFAULT NULL,
-player2_id INT(11) DEFAULT NULL,
-winner_id INT(11) DEFAULT NULL,
-PRIMARY KEY (id),
-CONSTRAINT fk_match_round FOREIGN KEY (round_id) REFERENCES rounds(id) ON DELETE CASCADE,
-CONSTRAINT fk_player1 FOREIGN KEY (player1_id) REFERENCES players(id) ON DELETE SET NULL,
-CONSTRAINT fk_player2 FOREIGN KEY (player2_id) REFERENCES players(id) ON DELETE SET NULL,
-CONSTRAINT fk_winner FOREIGN KEY (winner_id) REFERENCES players(id) ON DELETE SET NULL
+    id INT(11) NOT NULL AUTO_INCREMENT,
+    round_id INT(11) NOT NULL,
+    player1_id INT(11) DEFAULT NULL,
+    player2_id INT(11) DEFAULT NULL,
+    winner_id INT(11) DEFAULT NULL,
+    player1_score INT DEFAULT 0,
+    player2_score INT DEFAULT 0,
+    is_completed TINYINT DEFAULT 0,
+    PRIMARY KEY (id),
+    CONSTRAINT fk_match_round FOREIGN KEY (round_id) REFERENCES rounds(id) ON DELETE CASCADE,
+    CONSTRAINT fk_player1 FOREIGN KEY (player1_id) REFERENCES players(id) ON DELETE SET NULL,
+    CONSTRAINT fk_player2 FOREIGN KEY (player2_id) REFERENCES players(id) ON DELETE SET NULL,
+    CONSTRAINT fk_winner FOREIGN KEY (winner_id) REFERENCES players(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
 
 -- Таблица участников турнира (связующая)
 DROP TABLE IF EXISTS tournament_participants;
 CREATE TABLE tournament_participants (
-tournament_id INT(11) NOT NULL,
-player_id INT(11) NOT NULL,
-PRIMARY KEY (tournament_id, player_id),
-CONSTRAINT fk_tp_tournament FOREIGN KEY (tournament_id) REFERENCES tournaments(id) ON DELETE CASCADE,
-CONSTRAINT fk_tp_player FOREIGN KEY (player_id) REFERENCES players(id) ON DELETE CASCADE
+    tournament_id INT(11) NOT NULL,
+    player_id INT(11) NOT NULL,
+    PRIMARY KEY (tournament_id, player_id),
+    CONSTRAINT fk_tp_tournament FOREIGN KEY (tournament_id) REFERENCES tournaments(id) ON DELETE CASCADE,
+    CONSTRAINT fk_tp_player FOREIGN KEY (player_id) REFERENCES players(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-
--- Включаем проверки обратно
 SET FOREIGN_KEY_CHECKS = 1;
 
+-- Стартовый турнир
+INSERT INTO tournaments (id, title) VALUES (1, 'Главный турнир');
 
--- один стартовый турнир, чтобы всё сразу работало
-INSERT INTO tournaments (id, title) VALUES (1, 'Турнир номер один');
+ В планах на будущее
 
+    ~~Счетчик Эло~~
 
+    ~~AJAX-обновление без перезагрузки~~
+
+    ~~Матчи до 2 побед (Best of 3)~~
+
+    Добавление истории завершенных турниров
+
+    Возможность редактирования никнеймов игроков
+
+    Генерация PDF-отчета с результатами турнира
+
+    Оптимизация сетки под другие виды спорта
+
+    Круговая система турнира
+
+    Экспорт в Excel
+
+ Разработчик
+
+Максимко
+GitHub: @limoore21
